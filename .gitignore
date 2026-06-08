@@ -1,0 +1,11 @@
+# Sensitive environment variables
+.env
+.env.local
+
+# Dependency folders
+node_modules/
+__pycache__/
+
+# OS generated files
+.DS_Store
+Thumbs.db
