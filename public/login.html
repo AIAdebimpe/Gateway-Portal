@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway Church | Authentication</title>
+    <style>
+        :root { --primary: #1e3a8a; --accent: #d97706; --dark: #1f2937; --light: #f3f4f6; }
+        body { font-family: -apple-system, sans-serif; background: var(--light); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .auth-container { background: white; width: 100%; max-width: 400px; padding: 35px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-top: 5px solid var(--primary); }
+        h2 { margin-top: 0; color: var(--primary); text-align: center; }
+        .form-group { margin-bottom: 18px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: 600; font-size: 14px; color: #4b5563; }
+        input, select { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; }
+        .btn { background: var(--primary); color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        .btn:hover { background: #1d4ed8; }
+        .toggle-text { text-align: center; margin-top: 20px; font-size: 14px; color: #6b7280; }
+        .toggle-text span { color: var(--accent); cursor: pointer; font-weight: 600; }
+        .toggle-text span:hover { text-decoration: underline; }
+        #registerFields { display: none; }
+        .back-home { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #9ca3af; font-size: 13px; }
+        .back-home:hover { color: var(--dark); }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <h2 id="authHeading">Sign In to Your Account</h2>
+    
+    <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        <!-- fields needed for both registration & login -->
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="authEmail" required placeholder="yourname@domain.com">
+        </div>
+        
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="authPassword" required placeholder="••••••••">
+        </div>
+
+        <!-- dynamic expansion fields needed strictly for registration only -->
+        <div id="registerFields">
+            <div class="name-row">
+                <!-- 1. Title Selection Drop-List -->
+                <div class="form-group title-group">
+                    <label>Title</label>
+                    <select id="regTitle">
+                        <option value="Brother">Brother</option>
+                        <option value="Sister">Sister</option>
+                    </select>
+                </div>
+                <!-- 2. Independent Name Input Box -->
+                <div class="form-group name-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regFullName" placeholder="John Doe">
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Sign In</button>
+    </form>
+
+    <div class="toggle-text" id="togglePrompt">
+        Don't have an account? <span onclick="toggleAuthMode('register')">Register here</span>
+    </div>
+
+    <div id="errorNotificationPanel" style="display:none; color:#b91c1c; background:#fef2f2; border:1px solid #fca5a5; padding:10px; border-radius:6px; font-size:14px; text-align:center; margin-bottom:15px; font-weight:500;"></div>
+    
+    <a href="/" class="back-home">← Back to Homepage</a>
+</div>
+
+<script>
+    let currentMode = 'login';
+
+    // Check if the landing user came explicitly looking for the registration form
+    const urlParams = new URLSearchParams(window.location.search);
+    if (window.location.pathname.includes('register') || urlParams.get('mode') === 'register') {
+        toggleAuthMode('register');
+    }
+
+    function toggleAuthMode(mode) {
+        currentMode = mode;
+        const heading = document.getElementById('authHeading');
+        const submitBtn = document.getElementById('submitBtn');
+        const registerFields = document.getElementById('registerFields');
+        const togglePrompt = document.getElementById('togglePrompt');
+
+        const regNameInput = document.getElementById('regFullName');
+
+        if (mode === 'register') {
+            heading.innerText = "Create Church Profile";
+            submitBtn.innerText = "Register Profile";
+            registerFields.style.display = 'block';
+            regNameInput.setAttribute('required', 'true');
+            togglePrompt.innerHTML = `Already have a profile? <span onclick="toggleAuthMode('login')">Sign In here</span>`;
+        } else {
+            heading.innerText = "Sign In to Your Account";
+            submitBtn.innerText = "Sign In";
+            registerFields.style.display = 'none';
+            regNameInput.removeAttribute('required');
+            togglePrompt.innerHTML = `Don't have an account? <span onclick="toggleAuthMode('register')">Register here</span>`;
+        }
+    }
+
+    async function handleAuthSubmit(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        
+        let endpoint = '/api/auth/login';
+        let payload = { email, password };
+
+        if (currentMode === 'register') {
+            endpoint = '/api/auth/register';
+            const titleEl = document.getElementById('regTitle');
+            const nameEl = document.getElementById('regFullName');
+
+            if (!titleEl || !nameEl) {
+                console.error("❌ Form Error: Registration inputs are missing from DOM.");
+                alert("Interface parsing failure. Please refresh the workspace.");
+                return;
+            }
+
+            const title = titleEl.value;
+            const typedName = nameEl.value;
+
+            payload.fullName = typedName;
+            payload.title = title;
+            payload.role = 'member';
+        }
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            const errorPanel = document.getElementById('errorNotificationPanel');
+            if (errorPanel) {
+                errorPanel.style.display = 'none';
+                errorPanel.innerText = '';
+            }
+            
+            if (res.ok) {
+                console.log("Database Auth Response Data:", data);
+                
+                // 📌 Save the JWT bearer token
+                localStorage.setItem('token', data.token);
+                
+                // 📌 FIXED: Save the user data object cleanly with the title field preserved!
+                if (data.user) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                } else {
+                    // Defensive fallback if your registration controller doesn't return data.user yet
+                    localStorage.setItem('user', JSON.stringify({
+                        fullName: data.fullName || payload.fullName,
+                        role: data.role || payload.role || 'member',
+                        title: data.title || payload.title || 'Brother'
+                    }));
+                }
+
+                // Route to home/dashboard automatically
+                window.location.href = '/'; 
+            } else {
+                if (errorPanel) {
+                    errorPanel.innerText = `Authentication Rejected: ${data.error || 'Please re-verify credentials'}`;
+                    errorPanel.style.display = 'block';
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Network connection failure trying to communicate with auth system.");
+        }
+    }
+</script>
+</body>
+</html>

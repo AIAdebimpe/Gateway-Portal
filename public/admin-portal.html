@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leadership Content Desk</title>
+    <style>
+        :root { --primary: #1e3a8a; --accent: #d97706; --light: #f3f4f6; }
+        body { font-family: -apple-system, sans-serif; background: var(--light); margin: 0; padding: 20px; }
+        .admin-container { max-width: 700px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { color: var(--primary); border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 0; }
+        .form-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: 600; font-size: 14px; color: #4b5563; }
+        input, textarea, select { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; }
+        textarea { resize: vertical; min-height: 100px; }
+        .checkbox-group { flex-direction: row; align-items: center; gap: 10px; margin-top: 5px; }
+        .submit-btn { background: var(--primary); color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: background 0.2s; }
+        .submit-btn:hover { background: #1d4ed8; }
+        .toggle-tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #d1d5db; padding-bottom: 10px; }
+        .tab { padding: 8px 16px; border: none; background: #e5e7eb; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        .tab.active { background: var(--primary); color: white; }
+        .form-panel { display: none; }
+        .form-panel.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <h1>🛡️ Leadership Creator Desk</h1>
+    <p style="color:#6b7280; font-size:14px; margin-bottom:20px;">Publish structural content directly to the public church homepage and sub-landing pages.</p>
+    
+    <div class="toggle-tabs">
+        <button class="tab active" onclick="switchTab('eventPanel', this)">📅 Post Event Flyer</button>
+        <button class="tab" onclick="switchTab('sermonPanel', this)">🎙️ Log Sermon Notes</button>
+        <button class="tab" onclick="switchTab('devoPanel', this)">📖 Publish Devotional</button>
+    </div>
+
+    <form id="eventForm" class="form-panel active" onsubmit="handleFormSubmit(event, '/api/portal/events')">
+        <div class="form-group">
+            <label>Program / Event Title</label>
+            <input type="text" name="title" placeholder="e.g., Youth Revival Night 2026" required>
+        </div>
+        <div class="form-group">
+            <label>Flyer Image URL Path</label>
+            <input type="text" name="flyerUrl" placeholder="e.g., /images/flyers/youth_revival.jpg" required>
+        </div>
+        <div class="form-group">
+            <label>Event Calendar Date</label>
+            <input type="date" name="eventDate" required>
+        </div>
+        <div class="form-group">
+            <label>Detailed Description</label>
+            <textarea name="description" placeholder="Provide time details, venue location, or special registration rules..." required></textarea>
+        </div>
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="isFeaturedBanner" name="isFeaturedBanner" value="true">
+            <label for="isFeaturedBanner" style="cursor:pointer; color:var(--accent);">⭐ Set as the Full-Width Homepage Billboard Flyer</label>
+        </div>
+        <button type="submit" class="submit-btn">Publish Event Program Flyer</button>
+    </form>
+
+    <form id="sermonForm" class="form-panel" onsubmit="handleFormSubmit(event, '/api/portal/sermons')">
+        <div class="form-group">
+            <label>Sermon Theme Title</label>
+            <input type="text" name="title" placeholder="e.g., Walking in Divine Authority" required>
+        </div>
+        <div class="form-group">
+            <label>Preacher / Speaker Name</label>
+            <input type="text" name="preacher" placeholder="e.g., Pastor John Amos" required>
+        </div>
+        <div class="form-group">
+            <label>Scripture Reference Foundation</label>
+            <input type="text" name="scriptureReference" placeholder="e.g., Luke 10:19-20" required>
+        </div>
+        <div class="form-group">
+            <label>Delivery Date</label>
+            <input type="date" name="deliveryDate" required>
+        </div>
+        <div class="form-group">
+            <label>Sermon Summary / Deep Exposition Notes</label>
+            <textarea name="recapSummary" placeholder="Paste structural outlines, key notes, or transcript recaps here..." required></textarea>
+        </div>
+        <button type="submit" class="submit-btn" style="background:#047857;">Archive Sermon Summary</button>
+    </form>
+
+    <form id="devoForm" class="form-panel" onsubmit="handleFormSubmit(event, '/api/portal/devotional')">
+        <div class="form-group">
+            <label>Devotional Publication Track</label>
+            <select name="type" required>
+                <option value="Daily Manna">Daily Manna (General/Adults)</option>
+                <option value="Higher Everyday">Higher Everyday (Youths)</option>
+                <option value="Sincere Milk">Sincere Milk (Children)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Daily Devotional Title</label>
+            <input type="text" name="title" placeholder="e.g., Pureness of Heart" required>
+        </div>
+        <div class="form-group">
+            <label>Target Publication Date</label>
+            <input type="date" name="publishDate" required>
+        </div>
+        <div class="form-group">
+            <label>Memory Verse Anchor Text</label>
+            <input type="text" name="memoryVerse" placeholder="e.g., Matthew 5:8 - Blessed are the pure in heart..." required>
+        </div>
+        <div class="form-group">
+            <label>Broader Scripture Reading Target</label>
+            <input type="text" name="scriptureReading" placeholder="e.g., Psalm 24:1-5" required>
+        </div>
+        <div class="form-group">
+            <label>Devotional Spiritual Commentary Content</label>
+            <textarea name="commentary" placeholder="Write out the full daily message text layout here..." required></textarea>
+        </div>
+        <button type="submit" class="submit-btn" style="background:var(--accent);">Publish Daily Study Word</button>
+    </form>
+</div>
+
+<script>
+    // Tab switching controller helper logic
+    function switchTab(panelId, tabButton) {
+        document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        
+        document.getElementById(panelId).classList.add('active');
+        tabButton.classList.add('active');
+    }
+
+    // 🚀 CENTRAL DYNAMIC TRANSACTION NETWORK SUBMISSION HANDLER
+    async function handleFormSubmit(event, apiEndpoint) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Compile inputs natively into an object
+        const payload = {};
+        formData.forEach((value, key) => {
+            if (key === 'isFeaturedBanner') {
+                payload[key] = value === 'true';
+            } else {
+                payload[key] = value;
+            }
+        });
+
+        // Pull authentication context headers out of your browser safe local space storage
+        const token = localStorage.getItem('token');
+        if(!token) {
+            alert("Execution Interrupted: Your security token is missing. Please log in first.");
+            return;
+        }
+
+        try {
+            const response = await fetch(apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(`🎉 Success: ${data.message || 'Post saved successfully!'}`);
+                form.reset(); // Wipe fields clean for next entry
+            } else {
+                alert(`Entry Rejected: ${data.error}`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Network connection failure trying to process transactional post request.");
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "church_app",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Church app",
+  "main": "server.js",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.6.2",
+    "multer": "^2.1.1",
+    "node-cron": "^4.2.1"
+  }
+}

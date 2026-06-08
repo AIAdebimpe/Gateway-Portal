@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway Church | Live Attendance Desk</title>
+    <style>
+        :root { --primary: #1e3a8a; --accent: #d97706; --dark: #1f2937; --light: #f3f4f6; --success: #059669; }
+        body { font-family: -apple-system, sans-serif; background: var(--light); margin: 0; padding: 20px; }
+        .dashboard-container { max-width: 1000px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 25px; }
+        h1 { color: var(--primary); margin: 0; font-size: 24px; }
+        .back-home { text-decoration: none; color: #6b7280; font-size: 14px; font-weight: 600; }
+        
+        /* Service Control Form Grid */
+        .control-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; background: #f9fafb; padding: 20px; border-radius: 6px; border: 1px solid #e5e7eb; margin-bottom: 25px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-weight: 600; font-size: 13px; color: #4b5563; }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: white; }
+        .form-group input:disabled, .form-group select:disabled { background: #e5e7eb; color: #6b7280; cursor: not-allowed; }
+
+        /* Service Meta Banner */
+        .service-banner { background: #eff6ff; border-left: 5px solid var(--primary); padding: 15px 20px; border-radius: 4px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .service-title { font-size: 18px; font-weight: 700; color: #1e3a8a; margin: 0; }
+        .service-date { color: #4b5563; font-weight: 500; margin-top: 2px; }
+        .live-counter { background: var(--primary); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 18px; }
+
+        /* Search & Filter Controls */
+        .search-box { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; }
+        
+        /* Roster Grid System */
+        .roster-title { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 12px; margin-top: 0; }
+        .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 30px; max-height: 400px; overflow-y: auto; padding: 5px; }
+        
+        .member-card { background: white; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s; user-select: none; }
+        .member-card:hover { border-color: #9ca3af; background: #f9fafb; }
+        .member-card.checked { background: #ecfdf5; border-color: #6ee7b7; }
+        
+        .checkbox-custom { width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.1s; flex-shrink: 0; }
+        .member-card.checked .checkbox-custom { background: var(--success); border-color: var(--success); }
+        .member-card.checked .checkbox-custom::after { content: "✓"; color: white; font-size: 14px; font-weight: bold; }
+        
+        .member-info { display: flex; flex-direction: column; }
+        .member-name { font-weight: 600; color: var(--dark); font-size: 15px; }
+        .member-role { font-size: 12px; color: #9ca3af; text-transform: capitalize; }
+
+        .status-msg { padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; font-weight: 500; display: none; }
+        .status-msg.error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+        .status-msg.success { background: #ecfdf5; border: 1px solid #6ee7b7; color: #047857; }
+        
+        .submit-panel { display: flex; justify-content: flex-end; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+        .final-submit-btn { background: var(--success); color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .final-submit-btn:hover { background: #047857; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="header-row">
+        <h1>📊 Live Service Attendance Desk</h1>
+        <a href="/" class="back-home">← Back to Homepage</a>
+    </div>
+
+    <div id="statusPanel" class="status-msg"></div>
+
+    <div class="control-grid">
+        <div class="form-group">
+            <label>Service Date Log</label>
+            <input type="date" id="serviceDate" disabled required>
+        </div>
+        <div class="form-group">
+            <label>Service Type Category</label>
+            <select id="serviceType" disabled required>
+                <option value="Special Service">Special Service</option>
+                <option value="Sunday Worship Service">Sunday Worship Service</option>
+                <option value="Monday Prayer Meeting">Monday Prayer Meeting</option>
+                <option value="Tuesday Bible Study">Tuesday Bible Study</option>
+                <option value="Thursday Revival Service">Thursday Revival Service</option>
+                <option value="Sunday Evening Fellowship">Sunday Evening Fellowship</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="service-banner">
+        <div>
+            <div class="service-title" id="resolvedServiceTitle">Detecting Active Service...</div>
+            <div class="service-date" id="currentFormattedDate"></div>
+        </div>
+        <!-- <div class="live-counter">
+            Count: <span id="checkedCountDisplay">0</span>
+        </div> -->
+    </div>
+
+    <input type="text" id="rosterSearch" class="search-box" placeholder="🔎 Search congregant profiles by name..." oninput="filterRoster()">
+
+    <h3 class="roster-title">Select Present Attendants</h3>
+    <div class="roster-grid" id="rosterGridContainer">
+        <div style="grid-column: 1/-1; text-align: center; color: #9ca3af; padding: 40px;">Syncing church congregation ledger...</div>
+    </div>
+
+    <div class="submit-panel">
+        <button class="final-submit-btn" onclick="submitLiveAttendanceRecord()">🔒 Submit Attendance</button>
+    </div>
+    <div id="adminHistoryPanel" style="display: none; margin-top: 40px; 
+        border-top: 2px dashed #d1d5db; padding-top: 30px;">
+        
+        <h2 style="color: var(--primary); font-size: 20px; margin-bottom: 5px;">📜 Service Attendance Ledger</h2>
+        <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px;">
+            Review, filter, and track church engagement metrics across historical assembly configurations.
+        </p>
+        
+        <div id="adminMetricsHeaderContainer" style="display: block;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 700; color: #166534; text-transform: uppercase;">Total Present</div>
+                    <div id="summaryTotal" style="font-size: 28px; font-weight: 800; color: #14532d; margin-top: 5px;">0</div>
+                </div>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 700; color: #1e40af; text-transform: uppercase;">Men Count</div>
+                    <div id="summaryMen" style="font-size: 28px; font-weight: 800; color: #1e3a8a; margin-top: 5px;">0</div>
+                </div>
+                <div style="background: #fdf2f8; border: 1px solid #fbcfe8; padding: 15px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 700; color: #9d174d; text-transform: uppercase;">Women Count</div>
+                    <div id="summaryWomen" style="font-size: 28px; font-weight: 800; color: #831843; margin-top: 5px;">0</div>
+                </div>
+            </div>
+            
+            <div class="search-box-wrapper" style="margin-bottom: 15px;">
+                <input type="text" id="historySearch" class="search-box" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d1d5db;" placeholder="🔎 Filter historical attendants by profile name..." oninput="filterHistoryGrid()">
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; background: #f9fafb; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="monthFilter" style="font-size: 11px; font-weight: bold; color: #4b5563; text-transform: uppercase;">Filter by Month</label>
+                <select id="monthFilter" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #d1d5db; background: white; color: #1f2937; min-width: 160px; cursor: pointer;">
+                    <option value="all">-- All Months --</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="yearFilter" style="font-size: 11px; font-weight: bold; color: #4b5563; text-transform: uppercase;">Filter by Year</label>
+                <select id="yearFilter" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #d1d5db; background: white; color: #1f2937; min-width: 140px; cursor: pointer;">
+                    <option value="all">-- All Years --</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="historyGridContainer" class="roster-grid" style="display: grid; gap: 15px; margin-top: 15px;"></div>
+        
+        <div id="attendanceLogContainer" style="display: none; margin-top: 15px;"></div>
+        <div id="devotionalsFeedWrapper" style="display: none; margin-top: 15px;"></div>
+
+    </div>
+    <div id="adminEventPanel" style="display: none; margin-top: 40px; 
+        border-top: 2px dashed #d1d5db; padding-top: 30px;">
+        <h2 style="color: var(--primary); font-size: 20px; margin-bottom: 5px;">📅 Schedule New Church Event</h2>
+        <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px;">Publish announcement events to the general congregation calendar tracker.</p>
+        
+        <form id="eventCreationForm" onsubmit="handleEventPublish(event)" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px; max-width: 500px; display: grid; gap: 15px;">
+            <div>
+                <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px;">Event Title *</label>
+                <input type="text" id="eventTitle" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:4px;" required placeholder="e.g., Youth Revival Night">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px;">Description</label>
+                <textarea id="eventDescription" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:4px; height:80px;" placeholder="Details about timings, guest speakers..."></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px;">Date & Time *</label>
+                    <input type="datetime-local" id="eventDate" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:4px;" required>
+                </div>
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:bold; margin-bottom:5px;">Venue Location</label>
+                    <input type="text" id="eventLocation" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:4px;" placeholder="Main Sanctuary">
+                </div>
+            </div>
+            <button type="submit" style="background: var(--primary, #1e3a8a); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer;">📢 Publish Event</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = (userData.role || userData.Role || 'member').toLowerCase().trim();
+    
+    let masterRoster = [];
+    let historicalAttendants = [];
+    let personalHistoryCache = []; 
+    let checkedMemberIds = new Set();
+    let computedServiceType = "Special Service";
+
+    if (!token) {
+        window.location.href = '/login.html';
+    } else {
+        evaluateRoleAccessPrivileges();
+    }
+
+    // 🛡️ APPLICATION CONTROLLER & INITIALIZATION
+    function evaluateRoleAccessPrivileges() {
+        const dateInput = document.getElementById('serviceDate');
+        const selectElement = document.getElementById('serviceType');
+
+        // 🚨 CLEANUP TASK: Force remove administrative panels from the template DOM
+        ['adminEventPanel', 'rosterSection', 'attendanceControlBanner'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
+
+        // Strip any residual headers containing "Select Present Attendants"
+        document.querySelectorAll('h1, h2, h3, h4, p, span, label').forEach(el => {
+            if (el.textContent.includes('Select Present Attendants')) {
+                el.remove();
+            }
+        });
+
+        if (dateInput) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('max', todayStr);
+            if (!dateInput.value) {
+                dateInput.value = todayStr;
+            }
+        }
+
+        try {
+            determineCurrentService();
+        } catch (e) {
+            console.error("Service determination safety catch:", e);
+        }
+
+        if (dateInput) {
+            dateInput.removeAttribute('disabled');
+            dateInput.addEventListener('change', () => {
+                const monthFilter = document.getElementById('monthFilter');
+                const yearFilter = document.getElementById('yearFilter');
+                if (monthFilter) monthFilter.value = "all";
+                if (yearFilter) yearFilter.value = "all";
+
+                syncServiceToSelectedDate();
+                refreshAttendanceView();
+            });
+        }
+        
+        if (selectElement) {
+            selectElement.removeAttribute('disabled');
+            selectElement.addEventListener('change', () => {
+                computedServiceType = selectElement.value;
+                updateBannerTitle();
+                refreshAttendanceView();
+            });
+        }
+
+        // Attach listeners to trigger layout evaluation on macro changes instantly
+        const monthFilter = document.getElementById('monthFilter');
+        const yearFilter = document.getElementById('yearFilter');
+        if (monthFilter) monthFilter.addEventListener('change', () => refreshAttendanceView());
+        if (yearFilter) yearFilter.addEventListener('change', () => refreshAttendanceView());
+
+        // 🌟 ROLE PRIVILEGE SEPARATION
+        if (userRole === 'admin' || userRole === 'pastor') {
+            const showElement = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'block'; };
+            const hideElement = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+
+            showElement('adminHistoryPanel');
+            showElement('adminMetricsHeaderContainer');
+            
+            const historyGrid = document.getElementById('historyGridContainer');
+            if (historyGrid) historyGrid.style.display = 'grid';
+
+            hideElement('attendanceLogContainer');
+            hideElement('devotionalsFeedWrapper');
+
+            fetchChurchRoster(); 
+            refreshAttendanceView(); 
+        } else {
+            const hideElement = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+            const showElement = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'block'; };
+
+            // Secure member privacy view bounds
+            hideElement('rosterGridContainer');
+            hideElement('adminMetricsHeaderContainer');
+            hideElement('historyGridContainer');
+
+            // Eliminate search bars completely for members
+            const searchContainers = document.querySelectorAll('[id*="search"],[class*="search"]');
+            searchContainers.forEach(el => {
+                if(el && !el.closest('#adminHistoryPanel')) { el.remove(); }
+            });
+
+            showElement('adminHistoryPanel'); 
+            showElement('attendanceLogContainer');
+            showElement('devotionalsFeedWrapper');
+
+            refreshAttendanceView();
+        }
+    }
+
+    function refreshAttendanceView() {
+        if (userRole === 'admin' || userRole === 'pastor') {
+            fetchHistoricalLogs(); 
+        } else {
+            loadDashboardAttendanceData(); 
+        }
+    }
+
+    // 🗓️ ADAPTIVE SERVICE DROPDOWN RESTRICTION ENGINE
+    function syncServiceToSelectedDate() {
+        const dateInput = document.getElementById('serviceDate')?.value;
+        const selectElement = document.getElementById('serviceType');
+        if (!dateInput || !selectElement) return;
+
+        const [year, month, day] = dateInput.split('-');
+        const selectedDate = new Date(year, month - 1, day);
+        const dayOfWeek = selectedDate.getDay(); 
+
+        // Overwrite options dynamically based on calendar selection
+        selectElement.innerHTML = '';
+
+        if (dayOfWeek === 0) {
+            selectElement.innerHTML = `
+                <option value="Sunday Worship Service">Sunday Worship Service</option>
+                <option value="Sunday Evening Assembly">Sunday Evening Assembly</option>
+            `;
+            computedServiceType = "Sunday Worship Service";
+        } else {
+            let optionText = "Special Service";
+            if (dayOfWeek === 1) optionText = "Monday Prayer Meeting";
+            else if (dayOfWeek === 2) optionText = "Tuesday Bible Study";
+            else if (dayOfWeek === 4) optionText = "Thursday Revival Service";
+            
+            selectElement.innerHTML = `<option value="${optionText}">${optionText}</option>`;
+            computedServiceType = optionText;
+        }
+
+        selectElement.value = computedServiceType;
+        updateBannerTitle();
+    }
+
+    // 🏷️ HEADERS & LABELS ENGINE (NO REDUNDANT STRINGS)
+    function updateBannerTitle() {
+        const selectElement = document.getElementById('serviceType');
+        const resTitle = document.getElementById('resolvedServiceTitle');
+        const dateBanner = document.getElementById('currentFormattedDate');
+        if (!resTitle) return;
+
+        const activeText = selectElement?.options[selectElement.selectedIndex]?.text || computedServiceType || "Special Service";
+
+        if (userRole === 'admin' || userRole === 'pastor') {
+            if (dateBanner) dateBanner.style.display = 'block';
+            resTitle.innerText = `Active Track: ${activeText}`;
+        } else {
+            const filterDate = document.getElementById('serviceDate')?.value;
+            const filterMonth = document.getElementById('monthFilter')?.value || "all";
+            const filterYear = document.getElementById('yearFilter')?.value || "all";
+
+            // Safely prevent duplicate printing by hiding standard banner element for member context
+            if (dateBanner) dateBanner.style.display = 'none';
+
+            if (filterMonth !== "all" || filterYear !== "all") {
+                resTitle.innerHTML = `<div>Active Track: Summary History</div><div style="font-size:0.85em; font-weight:normal; color:#6b7280; margin-top:4px;">Timeline Scope Active</div>`;
+                return;
+            }
+
+            // Find check-in data inside cache matching date and service track
+            const hasLog = personalHistoryCache.some(rec => {
+                if (!rec || !rec.date) return false;
+                const recDate = rec.date.split('T')[0];
+                const recService = (rec.serviceType || '').trim().toLowerCase();
+                const targetService = computedServiceType.trim().toLowerCase();
+                return recDate === filterDate && recService === targetService;
+            });
+
+            // Date evaluation mechanics using standard comparison checks
+            const todayStr = new Date().toISOString().split('T')[0];
+            let statusText = "";
+
+            if (filterDate === todayStr) {
+                statusText = hasLog 
+                    ? `<span style="color: #059669; font-weight: bold;">Attendance registered</span>`
+                    : `<span style="color: #d97706; font-weight: bold;">Attendance not yet registered</span>`;
+            } else {
+                statusText = hasLog 
+                    ? `<span style="color: #1e40af; font-weight: bold;">Attended</span>`
+                    : `<span style="color: #dc2626; font-weight: bold;">Absent</span>`;
+            }
+
+            let displayDate = "";
+            if (filterDate) {
+                const [y, m, d] = filterDate.split('-');
+                displayDate = new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+
+            resTitle.innerHTML = `
+                <div style="font-weight:700; color:#1e293b; margin-bottom: 2px;">Active Track: ${activeText}</div>
+                <div style="font-size:0.95em; color:#475569; margin-bottom: 6px;">${displayDate}</div>
+                <div style="font-size:0.95em; margin-top:4px;">${statusText}</div>
+            `;
+        }
+    }
+
+    // 📁 ADMIN HISTORICAL LOG RETRIEVAL PIPELINE
+    async function fetchHistoricalLogs() {
+        let targetDate = document.getElementById('serviceDate')?.value;
+        const targetService = document.getElementById('serviceType')?.value;
+        const filterMonth = document.getElementById('monthFilter')?.value || "all";
+        const filterYear = document.getElementById('yearFilter')?.value || "all";
+        const container = document.getElementById('historyGridContainer');
+
+        if (!container) return;
+
+        try {
+            let queryUrl = `/api/attendance/history?date=${targetDate}`;
+            if (filterMonth !== "all" || filterYear !== "all") {
+                queryUrl = `/api/attendance/history`; 
+            }
+
+            let res = await fetch(queryUrl, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            let data = await res.json();
+            let logs = Array.isArray(data) ? data : (data.records || data.history || data.data || []);
+
+            let cleanValidLogs = logs.filter(record => record && record.memberId !== null && record.memberId !== undefined);
+
+            const isMacroFilterActive = (filterMonth !== "all" || filterYear !== "all");
+
+            if (isMacroFilterActive) {
+                if (filterMonth !== "all") {
+                    cleanValidLogs = cleanValidLogs.filter(rec => (new Date(rec.date).getMonth() + 1).toString() === filterMonth.toString());
+                }
+                if (filterYear !== "all") {
+                    cleanValidLogs = cleanValidLogs.filter(rec => new Date(rec.date).getFullYear().toString() === filterYear.toString());
+                }
+            } else {
+                cleanValidLogs = cleanValidLogs.filter(record => {
+                    if (!record.date) return false;
+                    return new Date(record.date).toISOString().split('T')[0] === targetDate;
+                });
+
+                let trackLogs = cleanValidLogs.filter(record => {
+                    if (!record.serviceType) return true; 
+                    return record.serviceType.toString().trim().toLowerCase() === (targetService || '').toString().trim().toLowerCase();
+                });
+                if (trackLogs.length > 0) cleanValidLogs = trackLogs;
+            }
+            
+            historicalAttendants = cleanValidLogs;
+            
+            if (isMacroFilterActive) {
+                renderAdminMacroTable(historicalAttendants);
+            } else {
+                renderHistoryGrid(historicalAttendants);
+            }
+
+        } catch (err) {
+            console.error("❌ Network lookup error:", err);
+            container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#b91c1c; padding:20px;">Failed to pull historical logs from server.</div>`;
+        }
+    }
+
+    function renderHistoryGrid(records) {
+        const container = document.getElementById('historyGridContainer');
+        if (!container) return;
+        
+        container.style.display = "grid"; 
+        let total = 0; let men = 0; let women = 0;
+        const validatedRecords = (records || []).filter(r => r && r.memberId);
+        
+        if (validatedRecords.length === 0) {
+            resetAdminMetricDisplays();
+            container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#9ca3af; padding:30px; background:#f9fafb; border-radius:6px; border:1px dashed #d1d5db;">No matching service records found.</div>`;
+            return;
+        }
+
+        const seenMemberIds = new Set();
+        const uniqueRecords = [];
+        validatedRecords.forEach(r => {
+            const memberObj = r.memberId || {};
+            const id = memberObj._id || r._id || r.id;
+            if (id && !seenMemberIds.has(id)) {
+                seenMemberIds.add(id); uniqueRecords.push(r);
+            }
+        });
+
+        container.innerHTML = uniqueRecords.map(r => {
+            const member = r.memberId || {};
+            const name = member.fullName || member.name || "Unknown Profile";
+            const genderValue = (member.gender || '').toString().trim().toLowerCase();
+            const titleValue = (member.title || member.regTitle || '').toString().trim().toLowerCase();
+
+            total++;
+            if (genderValue === 'male' || genderValue === 'm' || titleValue === 'brother' || titleValue === 'bro') men++;
+            else if (genderValue === 'female' || genderValue === 'f' || titleValue === 'sister' || titleValue === 'sis') women++;
+            else {
+                if (titleValue.includes('brother')) men++;
+                else if (titleValue.includes('sister')) women++;
+                else men++;
+            }
+
+            return `
+                <div class="member-card checked" style="cursor: default;">
+                    <div class="checkbox-custom"></div>
+                    <div class="member-info"><span class="member-name">${name}</span><span class="member-role" style="color: var(--success); font-weight: bold;">Verified Present</span></div>
+                </div>`;
+        }).join('');
+
+        updateAdminMetricPanels(total, men, women);
+    }
+
+    function renderAdminMacroTable(records) {
+        const container = document.getElementById('historyGridContainer');
+        if (!container) return;
+
+        container.style.display = "block";
+
+        if (!records || records.length === 0) {
+            resetAdminMetricDisplays();
+            container.innerHTML = `<div style="text-align:center; color:#9ca3af; padding:30px; background:#f9fafb; border-radius:6px; border:1px dashed #d1d5db;">No historical aggregations match the active macro range.</div>`;
+            return;
+        }
+
+        const serviceGroups = {};
+        let grandTotal = 0; let grandMen = 0; let grandWomen = 0;
+
+        records.forEach(r => {
+            const member = r.memberId || {};
+            if (!member._id) return;
+
+            const dateKey = new Date(r.date).toISOString().split('T')[0];
+            const serviceKey = r.serviceType || "Church Assembly Service";
+            const compositeKey = `${dateKey}_${serviceKey}`;
+
+            if (!serviceGroups[compositeKey]) {
+                serviceGroups[compositeKey] = {
+                    date: r.date,
+                    service: serviceKey,
+                    seenIds: new Set(),
+                    total: 0, men: 0, women: 0
+                };
+            }
+
+            const group = serviceGroups[compositeKey];
+            const memberId = member._id || member.id;
+
+            if (!group.seenIds.has(memberId)) {
+                group.seenIds.add(memberId);
+                group.total++;
+                
+                const gender = (member.gender || '').toString().trim().toLowerCase();
+                const title = (member.title || member.regTitle || '').toString().trim().toLowerCase();
+
+                if (gender === 'male' || gender === 'm' || title === 'brother' || title === 'bro') group.men++;
+                else if (gender === 'female' || gender === 'f' || title === 'sister' || title === 'sis') group.women++;
+                else {
+                    if (title.includes('brother')) group.men++;
+                    else if (title.includes('sister')) group.women++;
+                    else group.men++;
+                }
+            }
+        });
+
+        const sortedGroups = Object.values(serviceGroups).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        let html = `
+            <div style="margin-top: 10px; padding: 12px; background: #f0fdf4; border-left: 4px solid #16a34a; font-weight: 500; margin-bottom: 15px; color: #166534;">
+                📋 Macro Summary Mode: Showing database metrics across distinct service events.
+            </div>
+            <table style="width:100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <thead>
+                    <tr style="background: #0f172a; color: white; text-align: left;">
+                        <th style="padding: 12px 15px;">📅 Event Date</th>
+                        <th style="padding: 12px 15px;">⛪ Service Name</th>
+                        <th style="padding: 12px 15px; text-align: center;">👨 Men</th>
+                        <th style="padding: 12px 15px; text-align: center;">👩 Women</th>
+                        <th style="padding: 12px 15px; text-align: center; background:#1e3a8a;">📊 Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        sortedGroups.forEach(g => {
+            grandTotal += g.total; grandMen += g.men; grandWomen += g.women;
+            const dateStr = new Date(g.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            html += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px 15px; font-weight: 600; color: #1e293b;">${dateStr}</td>
+                    <td style="padding: 12px 15px; color: #475569; font-style: italic;">${g.service}</td>
+                    <td style="padding: 12px 15px; text-align: center; color: #2563eb; font-weight:500;">${g.men}</td>
+                    <td style="padding: 12px 15px; text-align: center; color: #db2777; font-weight:500;">${g.women}</td>
+                    <td style="padding: 12px 15px; text-align: center; font-weight: bold; color: #1e3a8a; background: #f8fafc;">${g.total}</td>
+                </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+        updateAdminMetricPanels(grandTotal, grandMen, grandWomen);
+    }
+
+    function updateAdminMetricPanels(t, m, w) {
+        if(document.getElementById('summaryTotal')) document.getElementById('summaryTotal').innerText = t;
+        if(document.getElementById('summaryMen')) document.getElementById('summaryMen').innerText = m;
+        if(document.getElementById('summaryWomen')) document.getElementById('summaryWomen').innerText = w;
+    }
+    function resetAdminMetricDisplays() {
+        updateAdminMetricPanels(0, 0, 0);
+    }
+
+    // 🎯 SECURE MEMBER TWO-COLUMN CALENDAR ENGINE (Event Date & Service Name Only)
+    async function loadDashboardAttendanceData() {
+        const wrapper = document.getElementById('devotionalsFeedWrapper') || document.getElementById('attendanceLogContainer'); 
+        if (!wrapper) return;
+
+        try {
+            if (personalHistoryCache.length === 0) {
+                wrapper.innerHTML = `<p style="text-align:center; color:#6b7280; padding:20px;">Synchronizing your personal church parameters...</p>`;
+                const res = await fetch('/api/attendance/my-history', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    wrapper.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">❌ Sync Exception: ${data.error || 'Identity mapping rejection.'}</p>`;
+                    return;
+                }
+                personalHistoryCache = data.history || data.allRosterRecords || data.records || data.data || (Array.isArray(data) ? data : []);
+            }
+
+            const filterDate = document.getElementById('serviceDate')?.value;
+            const filterMonth = document.getElementById('monthFilter')?.value || "all"; 
+            const filterYear = document.getElementById('yearFilter')?.value || "all"; 
+
+            let processedRecords = [...personalHistoryCache];
+
+            // Filter down based on either Macro (Month/Year) or Single Calendar Day
+            if (filterMonth !== "all" || filterYear !== "all") {
+                if (filterMonth !== "all") {
+                    processedRecords = processedRecords.filter(rec => {
+                        if (!rec || !rec.date) return false;
+                        const dateStr = typeof rec.date === 'string' ? rec.date : new Date(rec.date).toISOString();
+                        const parts = dateStr.split('T')[0].split('-');
+                        const m = parseInt(parts[1], 10);
+                        return m.toString() === filterMonth.toString();
+                    });
+                }
+                if (filterYear !== "all") {
+                    processedRecords = processedRecords.filter(rec => {
+                        if (!rec || !rec.date) return false;
+                        const dateStr = typeof rec.date === 'string' ? rec.date : new Date(rec.date).toISOString();
+                        const parts = dateStr.split('T')[0].split('-');
+                        const y = parseInt(parts[0], 10);
+                        return y.toString() === filterYear.toString();
+                    });
+                }
+            } else if (filterDate) {
+                processedRecords = processedRecords.filter(rec => {
+                    if (!rec || !rec.date) return false;
+                    const dateStr = typeof rec.date === 'string' ? rec.date : new Date(rec.date).toISOString();
+                    return dateStr.split('T')[0] === filterDate;
+                });
+            }
+
+            updateBannerTitle();
+
+            wrapper.innerHTML = '';
+            if (processedRecords.length === 0) {
+                wrapper.innerHTML = `
+                    <div style="text-align:center; padding:40px; background:#f9fafb; border-radius:8px; border:1px dashed #e5e7eb; color:#6b7280;">
+                        📅 <strong>No records found:</strong> You were not logged present for this specific filter view.
+                    </div>`;
+                return;
+            }
+
+            let uniqueMemberRows = [];
+            let seenDates = new Set();
+            processedRecords.forEach(rec => {
+                if (!rec || !rec.date) return;
+                const dateStr = typeof rec.date === 'string' ? rec.date : new Date(rec.date).toISOString();
+                const normDate = dateStr.split('T')[0];
+                const dKey = normDate + "_" + (rec.serviceType || "Assembly");
+                if(!seenDates.has(dKey)) {
+                    seenDates.add(dKey); uniqueMemberRows.push(rec);
+                }
+            });
+
+            uniqueMemberRows.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            let htmlContent = `
+                <div style="margin-top: 10px; padding: 12px; background: #eff6ff; border-left: 4px solid #1e40af; border-radius: 4px; margin-bottom: 15px; color: #1e40af; font-weight: 500;">
+                    📊 Showing <strong>${uniqueMemberRows.length}</strong> matching logged attendances.
+                </div>
+                <table style="width:100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <thead>
+                        <tr style="background: #1e3a8a; color: white; text-align: left;">
+                            <th style="padding: 12px 15px; width: 45%;">📅 Event Date</th>
+                            <th style="padding: 12px 15px; width: 55%;">⛪ Service Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            uniqueMemberRows.forEach(record => {
+                const dateStr = typeof record.date === 'string' ? record.date : new Date(record.date).toISOString();
+                const parts = dateStr.split('T')[0].split('-');
+                const dateString = new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
+                const serviceLabel = record.serviceType || "Regular Church Service";
+
+                htmlContent += `
+                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                        <td style="padding: 12px 15px; font-weight: 600; color: #1f2937;">${dateString}</td>
+                        <td style="padding: 12px 15px; color: #4b5563; font-style: italic;">${serviceLabel}</td>
+                    </tr>`;
+            });
+
+            htmlContent += `</tbody></table>`;
+            wrapper.innerHTML = htmlContent;
+
+        } catch (err) {
+            console.error("Personal history evaluation failure:", err);
+            wrapper.innerHTML = `<p style="color:#ef4444; text-align:center; padding:20px;">Critical data transmission interruption occurred.</p>`;
+        }
+    }
+
+    function determineCurrentService() {
+        const today = new Date(); 
+        const dateBanner = document.getElementById('currentFormattedDate');
+        if (dateBanner) dateBanner.innerText = today.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        syncServiceToSelectedDate();
+    }
+
+    async function fetchChurchRoster() {
+        try {
+            const res = await fetch('/api/users', { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            if (res.ok) { masterRoster = data.users || data; renderRoster(masterRoster); }
+        } catch (err) { console.error(err); }
+    }
+
+    function renderRoster(members) {
+        const container = document.getElementById('rosterGridContainer'); if (!container) return;
+        if (!members || members.length === 0) { container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#9ca3af; padding:20px;">No profiles found.</div>`; return; }
+        container.innerHTML = members.map(m => {
+            const isChecked = checkedMemberIds.has(m._id);
+            return `
+                <div class="member-card ${isChecked ? 'checked' : ''}" onclick="toggleMemberAttendance('${m._id}')" data-id="${m._id}">
+                    <div class="checkbox-custom"></div>
+                    <div class="member-info"><span class="member-name">${m.fullName}</span><span class="member-role">${m.role}</span></div>
+                </div>`;
+        }).join('');
+    }
+
+    // Toggle roster state helper
+    function toggleMemberAttendance(memberId) {
+        if (checkedMemberIds.has(memberId)) checkedMemberIds.delete(memberId); else checkedMemberIds.add(memberId);
+        
+        const counterEl = document.getElementById('checkedCountDisplay');
+        if (counterEl) {
+            counterEl.innerText = checkedMemberIds.size;
+        }
+
+        const card = document.querySelector(`.member-card[data-id="${memberId}"]`);
+        if (card) card.classList.toggle('checked');
+    }
+
+    function showMsg(msg, type) {
+        const p = document.getElementById('statusPanel'); if (!p) return;
+        p.innerText = msg; p.className = `status-msg ${type}`; p.style.display = 'block';
+    }
+
+    async function submitLiveAttendanceRecord() {
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = (userData.role || 'member').toLowerCase().trim();
+    
+    const finalDate = document.getElementById('serviceDate').value;
+        const finalService = document.getElementById('serviceType').value;
+        
+        // Create an array to collect our submission IDs
+        let idsToSubmit = [];
+
+        if (userRole === 'admin' || userRole === 'pastor') {
+            // Administrative mode: Gather IDs from the checked list elements
+            if (checkedMemberIds.size === 0) { 
+                showMsg("Validation Error: Sheet is empty. Please check at least one member.", "error"); 
+                return; 
+            }
+            idsToSubmit = Array.from(checkedMemberIds);
+        } else {
+            // Regular Member Mode: Dynamically pull their own ID from the active session
+            const selfMemberId = userData.id || userData._id;
+            if (!selfMemberId) {
+                showMsg("Session Error: Unable to detect your profile identifier. Please log out and back in.", "error");
+                return;
+            }
+            idsToSubmit = [selfMemberId]; // Force an array containing only themselves
+        }
+
+        showMsg(`Processing check-in...`, "success");
+
+        // Loop through and fire the individual checkout dispatches
+        for (const id of idsToSubmit) {
+            try { 
+                const res = await fetch('/api/attendance/checkin', { 
+                    method: 'POST', 
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${token}` 
+                    }, 
+                    body: JSON.stringify({ 
+                        memberId: id, 
+                        serviceType: finalService, 
+                        date: finalDate 
+                    }) 
+                }); 
+
+                const data = await res.json();
+                if (!res.ok) {
+                    // If the backend timing locks reject the user check-in, bubble up the reason text
+                    showMsg(`Check-in Failed: ${data.error}`, "error");
+                    return;
+                }
+            } catch (e) {
+                console.error("Network dispatch disruption:", e);
+            }
+        }
+
+        showMsg(`🎉 Check-in transaction dispatch complete!`, "success");
+        
+        if (typeof checkedMemberIds !== 'undefined') {
+            checkedMemberIds.clear();
+        }
+        
+        setTimeout(() => window.location.href = '/', 2000);
+    }
+</script>
+</body>
+</html>

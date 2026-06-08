@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Church Events Itinerary</title>
+    <style>
+        :root { --primary: #1e3a8a; --dark: #1f2937; --light: #f3f4f6; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: var(--light); padding: 0; }
+        header { background: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .event-list { display: flex; flex-direction: column; gap: 25px; margin-top: 20px; }
+        .event-row { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 20px; align-items: center; }
+        .event-img { width: 150px; height: 150px; object-fit: cover; border-radius: 6px; background: #e5e7eb; }
+        .event-details { flex-grow: 1; }
+        .event-details h3 { margin: 0 0 10px 0; color: var(--primary); font-size: 22px; }
+        .event-date { font-weight: bold; color: #d97706; margin-bottom: 10px; font-size: 14px; }
+        .event-desc { color: #4b5563; font-size: 15px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" style="font-size:22px; font-weight:bold; color:var(--primary); text-decoration:none;">⛪ Gateway Church</a>
+        <a href="/" style="text-decoration:none; color:var(--dark); font-weight:500;">← Back to Home</a>
+    </header>
+    
+    <div class="container">
+        <h1>Upcoming Church Programs & Calendars</h1>
+
+        <div id="adminEventPanel" style="display: none; background: #ffffff; border: 1px solid #e5e7eb; padding: 25px; border-radius: 8px; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h2 style="color: var(--primary, #1e3a8a); font-size: 20px; margin-top: 0; margin-bottom: 5px;">📅 Schedule New Church Event</h2>
+            <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px;">Publish announcement events to the general congregation calendar tracker.</p>
+            
+            <form id="eventCreationForm" onsubmit="handleEventPublish(event)" style="display: grid; gap: 15px; max-width: 600px;">
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Event Title *</label>
+                    <input type="text" id="eventTitle" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required placeholder="e.g., Youth Revival Night">
+                </div>
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Description</label>
+                    <textarea id="eventDescription" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; height:80px; box-sizing: border-box;" placeholder="Details about timings, guest speakers..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Date & Time *</label>
+                        <input type="datetime-local" id="eventDate" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Venue Location</label>
+                        <input type="text" id="eventLocation" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" placeholder="e.g., Main Sanctuary">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Program Poster Image *</label>
+                    <input type="file" id="eventFlyer" accept="image/*" style="width:100%; padding:8px; border:1px dashed #d1d5db; border-radius:6px; background:#f9fafb;" required>
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                    <button type="submit" style="background: #1e3a8a; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer;">📢 Publish Event</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="event-list" id="eventsTimelineWrapper">Loading itinerary...</div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+
+        function checkPrivilegeLevels() {
+            if (token && userData) {
+                const userRole = (userData.role || userData.Role || 'member').toString().toLowerCase().trim();
+                console.log("Verified Profile Access String Evaluation:", userRole);
+
+                if (userRole === 'admin' || userRole === 'pastor') {
+                    const adminPanel = document.getElementById('adminEventPanel');
+                    if (adminPanel) adminPanel.style.display = 'block';
+                }
+            }
+        }
+
+        async function fetchTimeline() {
+            try {
+                const res = await fetch('/api/portal/events');
+                if (res.ok) {
+                    const data = await res.json();
+                    const wrapper = document.getElementById('eventsTimelineWrapper');
+                    wrapper.innerHTML = '';
+
+                    if (!data.allEvents || data.allEvents.length === 0) {
+                        wrapper.innerHTML = `<p style="text-align:center; color:#6b7280;">No active upcoming events scheduled currently. Check back soon!</p>`;
+                        return;
+                    }
+
+                    data.allEvents.forEach(evt => {
+                        const div = document.createElement('div');
+                        div.className = 'event-row';
+                        div.style.width = '100%';
+                        div.style.marginBottom = '25px';
+                        div.style.boxSizing = 'border-box';
+
+                        const flyerImg = evt.flyerUrl || "https://placehold.co/800x400?text=Gateway+Church+Program";
+
+                        div.innerHTML = `
+                            <img src="${flyerImg}" class="event-img" alt="Program Banner" style="width: 100%; 
+                                        display: block; 
+                                        height: auto; 
+                                        object-fit: cover; 
+                                        border-radius: 8px; 
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                        `;
+                        wrapper.appendChild(div);
+                    });
+                }
+            } catch(e) { 
+                console.error("Error drawing live itinerary pipeline:", e); 
+            }
+        }
+
+        async function handleEventPublish(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('eventTitle').value;
+            const description = document.getElementById('eventDescription').value;
+            const eventDate = document.getElementById('eventDate').value;
+            const location = document.getElementById('eventLocation').value;
+            const flyerFile = document.getElementById('eventFlyer').files[0];
+
+            if (!token) {
+                alert("Session context missing. Please log in again.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('eventDate', eventDate);
+            formData.append('location', location);
+            if (flyerFile) {
+                formData.append('image', flyerFile);
+            }
+
+            try {
+                const res = await fetch('/api/events/create', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert("✨ Success: Program Poster Uploaded & Event Published!");
+                    document.getElementById('eventCreationForm').reset();
+                    fetchTimeline();
+                } else {
+                    alert("❌ Submission Denied: " + (data.error || "Access Denied"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to pass image metadata payload streams to server.");
+            }
+        }
+
+        window.onload = function() {
+            checkPrivilegeLevels();
+            fetchTimeline();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Devotionals | Gateway Church</title>
+    <link rel="stylesheet" href="/css/style.css"> 
+</head>
+<body>
+    <header style="padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb;">
+        <!-- ⛪ Dynamically updates the header text to show which devotional track they are looking at -->
+        <a href="/" id="devotionalHeaderTitle" style="font-size:22px; font-weight:bold; color:#1e3a8a; text-decoration:none;">⛪ Gateway Church Devotionals</a>
+        <a href="/" style="text-decoration:none; color:#1f2937; font-weight:500;">← Back to Home</a>
+    </header>
+    
+    <div class="container" style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
+        <h1 id="pageTitleDisplay">Daily Bread Devotional Matrix</h1>
+
+        <div id="adminDevotionalPanel" style="display: none; background: #ffffff; border: 1px solid #e5e7eb; padding: 25px; border-radius: 8px; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <h2 style="color: #1e3a8a; font-size: 20px; margin-top: 0; margin-bottom: 5px;">✍️ Post Today's Devotional Banner</h2>
+            <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px;">Upload the daily devotion picture word. Max one upload permitted per devotional track daily.</p>
+            
+            <form id="devotionalForm" onsubmit="handleDevotionalPublish(event)" style="display: grid; gap: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Devotional Track TYPE *</label>
+                        <select id="devotionalType" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; background: white; height: 40px;" required>
+                            <option value="Daily Manna">📖 Daily Manna</option>
+                            <option value="Higher Everyday">🦅 Higher Everyday</option>
+                            <option value="Sincere Milk">🍼 Sincere Milk</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Target Devotional Calendar Date *</label>
+                        <input type="date" id="devotionalDate" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box; height: 40px;" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Devotional Title Reference *</label>
+                    <input type="text" id="devotionalTitle" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required placeholder="e.g., Walking In Divine Favor">
+                </div>
+
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Devotional Image Graphic *</label>
+                    <input type="file" id="devotionalFile" accept="image/*" style="width:100%; padding:8px; border:1px dashed #d1d5db; border-radius:6px; background:#f9fafb;" required>
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                    <button type="submit" style="background: #1e3a8a; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer;">📢 Publish Devotional</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 🚫 OLD TAB NAVIGATION REMOVED AS REQUESTED -->
+        <div id="devotionalsFeedWrapper">Loading daily bread stream...</div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        // 🎯 1. READ URL PARAMETERS TO SEE WHAT WAS SELECTED ON THE HOME PAGE Dropdown
+        const urlParams = new URLSearchParams(window.location.search);
+        // Default back to 'Daily Manna' if something weird happens or parameter is missing
+        let currentActiveTrack = urlParams.get('type') || 'Daily Manna'; 
+
+        function checkPrivileges() {
+            if (token && userData) {
+                const userRole = (userData.role || userData.Role || 'member').toString().toLowerCase().trim();
+                if (userRole === 'admin' || userRole === 'pastor') {
+                    document.getElementById('adminDevotionalPanel').style.display = 'block';
+                    // Auto-select the dropdown in the admin panel to match what they are currently viewing
+                    document.getElementById('devotionalType').value = currentActiveTrack;
+                }
+            }
+        }
+
+        async function fetchDevotionals() {
+            try {
+                // Dynamically change page headers to create a fully customized user experience
+                document.getElementById('devotionalHeaderTitle').innerText = `⛪ Gateway Church | ${currentActiveTrack}`;
+                document.getElementById('pageTitleDisplay').innerText = `${currentActiveTrack}`;
+
+                const res = await fetch('/api/devotionals');
+                if (res.ok) {
+                    const data = await res.json();
+                    const allFetchedDevotionals = data.allDevotionals || [];
+                    
+                    // 🎯 2. STRICT FILTER ENGINE: Only render data match targeting the home page request
+                    const targetedList = allFetchedDevotionals.filter(dev => dev.type === currentActiveTrack);
+                    renderList(targetedList);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderList(items) {
+            const wrapper = document.getElementById('devotionalsFeedWrapper');
+            wrapper.innerHTML = '';
+
+            if (items.length === 0) {
+                wrapper.innerHTML = `<p style="text-align:center; color:#6b7280; padding: 40px;">No daily devotion posters published yet for ${currentActiveTrack}.</p>`;
+                return;
+            }
+
+            items.forEach(dev => {
+                const div = document.createElement('div');
+                div.style.width = '100%';
+                div.style.marginBottom = '40px';
+                
+                const dateLabel = new Date(dev.date).toLocaleDateString(undefined, {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                div.innerHTML = `
+                    <div style="font-weight: bold; color: #4b5563; margin-bottom: 8px; font-size: 14px;">🗓️ Devotional for: ${dateLabel}</div>
+                    <img src="${dev.flyerUrl}" alt="${dev.title}" style="width:100%; display:block; height:auto; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                `;
+                wrapper.appendChild(div);
+            });
+        }
+
+        async function handleDevotionalPublish(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('devotionalTitle').value;
+            const date = document.getElementById('devotionalDate').value;
+            const type = document.getElementById('devotionalType').value; 
+            const imageFile = document.getElementById('devotionalFile').files[0];
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('date', date);
+            formData.append('type', type); 
+            formData.append('image', imageFile);
+
+            try {
+                const res = await fetch('/api/devotionals/create', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(`✨ Success: Today's ${type} Devotional Banner live!`);
+                    document.getElementById('devotionalForm').reset();
+                    document.getElementById('devotionalFile').value = "";
+                    document.getElementById('devotionalDate').value = new Date().toISOString().split('T')[0];
+                    
+                    // If they upload to a different track than what they are currently viewing, 
+                    // redirect them to that track view smoothly
+                    if (type !== currentActiveTrack) {
+                        window.location.search = `?type=${encodeURIComponent(type)}`;
+                    } else {
+                        fetchDevotionals();
+                    }
+                } else {
+                    alert("❌ Action Blocked: " + (data.error || "Submission Denied."));
+                }
+            } catch (err) {
+                alert("Failed to communicate with Devotional asset manager.");
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('devotionalDate').value = new Date().toISOString().split('T')[0];
+            checkPrivileges();
+            fetchDevotionals();
+        };
+    </script>
+</body>
+</html>
