@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import 'dotenv/config';
+
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
