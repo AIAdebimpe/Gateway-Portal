@@ -10,7 +10,12 @@ import devotionalRoutes from './routes/devotionalRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config();
+    console.log("🛠️ Local environment variables loaded from .env file");
+}
 
 const app = express();
 app.use(express.static('public'));

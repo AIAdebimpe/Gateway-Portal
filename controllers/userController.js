@@ -41,3 +41,29 @@ export const getAllMembers = async (req, res) => {
         res.status(500).json({ error: "Failed to load church directory." });
     }
 };
+
+
+export const updateProfileAvatar = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "Please provide an image file resource." });
+        }
+
+        // Multer puts the local file route path here. Normalize slashes for web access.
+        const avatarUrl = `/${req.file.path.replace(/\\/g, '/')}`;
+
+        // Save path string to the logged-in user profile inside MongoDB
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.userId, 
+            { avatar: avatarUrl }, 
+            { new: true }
+        ).select('-password');
+
+        res.status(200).json({ 
+            message: "Profile image updated successfully!", 
+            user: updatedUser 
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

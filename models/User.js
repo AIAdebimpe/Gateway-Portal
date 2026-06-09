@@ -14,7 +14,12 @@ const userSchema = new mongoose.Schema({
         enum: ['Brother', 'Sister'], 
         default: 'Brother'
     },
+    avatar: { 
+        type: String, 
+        default: '/uploads/profiles/default-avatar.png'
+    },
     joinedAt: { type: Date, default: Date.now }
+
 });
 
 // Default export so other files can import it

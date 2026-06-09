@@ -87,10 +87,12 @@
                     
                     // 🎯 2. STRICT FILTER ENGINE: Only render data match targeting the home page request
                     const targetedList = allFetchedDevotionals.filter(dev => dev.type === currentActiveTrack);
-                    renderList(targetedList);
+                    targetedList.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+                    const singleLatestPostList = targetedList.length > 0 ? [targetedList[0]] : [];
+                    renderList(singleLatestPostList);
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Devotional processing engine breakdown:", e);
             }
         }
 
