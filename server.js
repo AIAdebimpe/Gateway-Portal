@@ -50,7 +50,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/devotionals', devotionalRoutes);
 
 app.listen(PORT, () => {
