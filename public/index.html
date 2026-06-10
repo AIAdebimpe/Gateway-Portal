@@ -71,9 +71,8 @@
     </header>
 
     <!-- 🖼️ FULL WIDTH FEATURED IMAGE BLOCK -->
-    <div class="flyer-container" id="featuredFlyerContainer" style="padding: 20px; 
-        max-width: 1200px; margin: 0 auto;">
-        <div class="flyer-placeholder" id="flyerPlaceholder">Loading current church program banners...</div>
+    <div class="flyer-container" id="featuredFlyerContainer" style="padding: 0; max-width: 100%;    margin: 0 auto 30px auto;">
+        <div class="flyer-placeholder" id="flyerPlaceholder" style="padding: 40px; text-align: center; color: var(--text-muted);">Loading current church program banner...</div>
         
         <div id="homepageEventsGrid" class="events-home-grid" style="display: none;">
             </div>
@@ -176,32 +175,33 @@
                 if (grid) {
                     grid.innerHTML = '';
 
-                    // Extract and filter valid upcoming items
-                    const displayEvents = (eventData.allEvents || [])
-                        .filter(evt => evt.flyerUrl && evt.flyerUrl.trim() !== '')
-                        .slice(0, 3);
+                    const now = new Date();
 
-                    if (displayEvents.length === 0) {
+
+                    const nextUpcomingEvent = (eventData.allEvents || [])
+                        .filter(evt => evt.flyerUrl && evt.flyerUrl.trim() !== '')
+                        .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate))
+                        .find(evt => new Date(evt.eventDate) >= now.setHours(0,0,0,0));
+
+                    if (!nextUpcomingEvent) {
                         if (placeholder) {
                             placeholder.style.display = 'block';
-                            placeholder.innerText = "No active upcoming events scheduled currently. Check back soon!";
+                            placeholder.innerText = "Welcome to Gateway. Check back soon for upcoming program updates!";
                         }
+                        grid.style.display = 'none';
                     } else {
-                        // Hide loading indicator, reveal dynamic flex layout grid container
+                        // Hide loading indicator and reveal the grid container
                         if (placeholder) placeholder.style.display = 'none';
-                        if (grid) {
-                            grid.style.display = 'grid';
+                        grid.style.display = 'grid';
 
-                            displayEvents.forEach(evt => {
-                                const card = document.createElement('div');
-                                card.className = 'home-event-card';
+                        const card = document.createElement('div');
+                        card.className = 'home-event-card';
 
-                                card.innerHTML = `
-                                    <img src="${evt.flyerUrl}" alt="${evt.title || 'Program Banner'}">
-                                `;
-                                grid.appendChild(card);
-                            });
-                        }
+                        // Render ONLY the pure image flyer element
+                        card.innerHTML = `
+                            <img src="${nextUpcomingEvent.flyerUrl}" alt="${nextUpcomingEvent.title || 'Upcoming Program Banner'}">
+                        `;
+                        grid.appendChild(card);
                     }
                 }
             }
