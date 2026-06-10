@@ -20,15 +20,22 @@ if (process.env.NODE_ENV !== 'production') {
 const app = express();
 app.use(express.static('public'));
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 
-mongoose.connect(MONGO_URI)
+if (!MONGODB_URI) {
+    console.error("❌ CRITICAL BOOT ERROR: MONGODB_URI environment variable is completely undefined!");
+    process.exit(1);
+}
+
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000 
+})
     .then(() => console.log("🔌 Connected to MongoDB Cloud!"))
-    .catch((err) => console.error(err));
+    .catch((err) => console.error("❌ Mongoose Connection Crash:", err));
 
 // 🚀 Link your route modules!
 app.use('/api/auth', authRoutes); 
