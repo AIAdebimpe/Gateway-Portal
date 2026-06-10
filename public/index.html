@@ -71,9 +71,12 @@
     </header>
 
     <!-- 🖼️ FULL WIDTH FEATURED IMAGE BLOCK -->
-    <div class="flyer-container" id="featuredFlyerContainer">
+    <div class="flyer-container" id="featuredFlyerContainer" style="padding: 20px; 
+        max-width: 1200px; margin: 0 auto;">
         <div class="flyer-placeholder" id="flyerPlaceholder">Loading current church program banners...</div>
-        <img src="" alt="Featured Upcoming Program Flyer" class="flyer-banner" id="flyerImage">
+        
+        <div id="homepageEventsGrid" class="events-home-grid" style="display: none;">
+            </div>
     </div>
 
     <!-- 👥 MEMBERSHIP ACCESS CALLOUT -->
@@ -93,6 +96,8 @@
             <!-- Driven Dynamically by Javascript -->
         </div>
     </div>
+
+    
 
     <script>
     // Track session tokens safely
@@ -139,25 +144,8 @@
         } else if (userRole === 'pastor') {
             greetingPrefix = "Pastor";
         } else {
-            //  FIXED: Reads the exact title saved during registration instead of guessing
             greetingPrefix = userData.title || "Brother"; 
         }
-
-        // let creatorPortalButton = "";
-        // if (userRole === 'admin' || userRole === 'pastor') {
-        //     creatorPortalButton = `
-        //         <a href="/admin-portal.html" class="auth-btn" style="background:var(--primary); margin-right:10px; border:1px solid white;">
-        //             ✍️ Content Desk
-        //         </a>
-        //     `;
-        // }
-
-        // document.getElementById('navAuthContainer').innerHTML = `
-        //     <span style="margin-right:15px; font-size:14px; font-weight:500;">Shalom, ${greetingPrefix} ${firstName}</span>
-        //     ${creatorPortalButton}
-        //     <a href="/dashboard.html" class="auth-btn" style="background:var(--accent); margin-right:10px;">Attendance Desk</a>
-        //     <a href="#" onclick="executeChurchSignOut(event)" style="text-decoration:none; color:#ef4444; font-size:14px; font-weight:600; vertical-align:middle;">Sign Out</a>
-        // `;
         
         document.getElementById('navAuthContainer').innerHTML = `
             <span style="margin-right:15px; font-size:14px; font-weight:500;">Shalom, ${greetingPrefix} ${firstName}</span>
@@ -177,17 +165,53 @@
     // Fetch and draw components on load
     async function initializeHomepageFeed() {
         try {
+
+            const placeholder = document.getElementById('flyerPlaceholder');
+            const grid = document.getElementById('homepageEventsGrid');
+
             // 1. Fetch Banner Graphic Layout
             const eventRes = await fetch('/api/portal/events');
             if (eventRes.ok) {
                 const eventData = await eventRes.json();
-                if (eventData.featured && eventData.featured.flyerUrl) {
-                    document.getElementById('flyerPlaceholder').style.display = 'none';
-                    const img = document.getElementById('flyerImage');
-                    img.src = eventData.featured.flyerUrl;
-                    img.style.display = 'block';
-                } else {
-                    document.getElementById('flyerPlaceholder').innerText = "Welcome to Gateway. Check back soon for upcoming dynamic program updates!";
+                if (grid) {
+                    grid.innerHTML = '';
+
+                    // Extract and filter valid upcoming items
+                    const displayEvents = (eventData.allEvents || [])
+                        .filter(evt => evt.flyerUrl && evt.flyerUrl.trim() !== '')
+                        .slice(0, 3);
+
+                    if (displayEvents.length === 0) {
+                        if (placeholder) {
+                            placeholder.style.display = 'block';
+                            placeholder.innerText = "No active upcoming events scheduled currently. Check back soon!";
+                        }
+                    } else {
+                        // Hide loading indicator, reveal dynamic flex layout grid container
+                        if (placeholder) placeholder.style.display = 'none';
+                        if (grid) {
+                            grid.style.display = 'grid';
+
+                            displayEvents.forEach(evt => {
+                                const card = document.createElement('div');
+                                card.className = 'home-event-card';
+
+                                const dateLabel = new Date(evt.eventDate).toLocaleDateString(undefined, {
+                                    weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
+                                });
+
+                                card.innerHTML = `
+                                    <img src="${evt.flyerUrl}" alt="${evt.title}">
+                                    <div class="home-event-details">
+                                        <div class="home-event-title">${evt.title}</div>
+                                        <div class="home-event-meta">🗓️ <strong>Date:</strong> ${dateLabel}</div>
+                                        <div class="home-event-meta">📍 <strong>Location:</strong> ${evt.location || 'Main Sanctuary'}</div>
+                                    </div>
+                                `;
+                                grid.appendChild(card);
+                            });
+                        }
+                    }
                 }
             }
 
@@ -195,42 +219,42 @@
             const sermonRes = await fetch('/api/portal/sermons/latest');
             if (sermonRes.ok) {
                 const sermons = await sermonRes.json();
-                const grid = document.getElementById('homepageSermonContainer');
-                grid.innerHTML = '';
+                const sermonContainer = document.getElementById('homepageSermonContainer');
+                if (sermonContainer) {
+                    sermonContainer.innerHTML = '';
 
-                if(sermons.length === 0) {
-                    grid.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#6b7280;">No sermon logs available yet.</p>`;
-                    return;
-                }
-
-                sermons.forEach(sermon => {
-                    //  FIXED: Only include scripture element layout text context if it is supplied
-                    const scriptureHtml = sermon.scriptureReference && sermon.scriptureReference.trim() !== ""
-                        ? `<strong>Scripture:</strong> ${sermon.scriptureReference}<br>`
-                        : "";
-
-                    //  FIXED: Only append excerpt container section down below if text content exists
-                    let excerptHtml = "";
-                    if (sermon.recapSummary && sermon.recapSummary.trim() !== '') {
-                        const rawText = sermon.recapSummary;
-                        const truncated = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
-                        excerptHtml = `<div class="sermon-excerpt" style="margin-bottom: 12px; font-style: italic; color: #4b5563;">"${truncated}"</div>`;
+                    if (sermons.length === 0) {
+                        sermonContainer.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#6b7280;">No sermon logs available yet.</p>`;
+                        return;
                     }
 
-                    const card = document.createElement('div');
-                    card.className = 'sermon-card';
-                    card.innerHTML = `
-                        <h3>${sermon.title}</h3>
-                        <div class="sermon-meta" style="margin-bottom: 10px;">
-                            <strong>Preacher:</strong> ${sermon.preacher}<br>
-                            ${scriptureHtml}
-                            <strong>Date:</strong> ${new Date(sermon.deliveryDate).toLocaleDateString()}
-                        </div>
-                        ${excerptHtml}
-                        <a href="/sermons.html" class="card-btn">Go to Sermon Notes →</a>
-                    `;
-                    grid.appendChild(card);
-                });
+                    sermons.forEach(sermon => {
+                        const scriptureHtml = sermon.scriptureReference && sermon.scriptureReference.trim() !== ""
+                            ? `<strong>Scripture:</strong> ${sermon.scriptureReference}<br>`
+                            : "";
+
+                        let excerptHtml = "";
+                        if (sermon.recapSummary && sermon.recapSummary.trim() !== '') {
+                            const rawText = sermon.recapSummary;
+                            const truncated = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
+                            excerptHtml = `<div class="sermon-excerpt" style="margin-bottom: 12px; font-style: italic; color: #4b5563;">"${truncated}"</div>`;
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = 'sermon-card';
+                        card.innerHTML = `
+                            <h3>${sermon.title}</h3>
+                            <div class="sermon-meta" style="margin-bottom: 10px;">
+                                <strong>Preacher:</strong> ${sermon.preacher}<br>
+                                ${scriptureHtml}
+                                <strong>Date:</strong> ${new Date(sermon.deliveryDate).toLocaleDateString()}
+                            </div>
+                            ${excerptHtml}
+                            <a href="/sermons.html" class="card-btn">Go to Sermon Notes →</a>
+                        `;
+                        sermonContainer.appendChild(card);
+                    });
+                }
             }
         } catch (err) {
             console.error("Homepage compilation failure:", err);
