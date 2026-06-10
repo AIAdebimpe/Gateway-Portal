@@ -93,13 +93,12 @@
                     }
 
                     data.allEvents.forEach(evt => {
-                        if (!evt.flyerUrl || 
-                            evt.flyerUrl.trim() === '' || 
-                            evt.flyerUrl.includes('/uploads/') || 
-                            !evt.flyerUrl.startsWith('http')) { 
-                            return; // Exits this specific loop iteration immediately, skipping the post entirely
-                        }
+                        const isBrokenLegacyHash = evt.flyerUrl && /uploads\/[a-f0-9]{32}/i.test(evt.flyerUrl);
 
+                        if (!evt.flyerUrl || evt.flyerUrl.trim() === '' || isBrokenLegacyHash) { 
+                            return; // Skips old broken uploads, but allows fresh '/uploads/...' files!
+                        }
+                        
                         const div = document.createElement('div');
                         div.className = 'event-row';
                         div.style.width = '100%';
