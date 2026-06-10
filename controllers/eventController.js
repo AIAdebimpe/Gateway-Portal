@@ -11,7 +11,7 @@ export const createEvent = async (req, res) => {
 
         let flyerUrl = "";
         if (req.file) {
-            flyerUrl = `/uploads/${req.file.filename}`;
+            flyerUrl = req.file.path;
         } else if (req.body.flyerUrl && req.body.flyerUrl.trim() !== "") {
             flyerUrl = req.body.flyerUrl; // Fallback text payload string match
         } else {

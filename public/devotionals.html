@@ -114,9 +114,13 @@
                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 });
 
-                div.innerHTML = `
+                const finalImageUrl = dev.flyerUrl.startsWith('http') 
+                    ? dev.flyerUrl 
+                    : `https://gateway-portal.onrender.com${dev.flyerUrl}`;
+
+               div.innerHTML = `
                     <div style="font-weight: bold; color: #4b5563; margin-bottom: 8px; font-size: 14px;">🗓️ Devotional for: ${dateLabel}</div>
-                    <img src="${dev.flyerUrl}" alt="${dev.title}" style="width:100%; display:block; height:auto; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                    <img src="${finalImageUrl}" alt="${dev.title}" style="width:100%; display:block; height:auto; border-radius:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
                 `;
                 wrapper.appendChild(div);
             });

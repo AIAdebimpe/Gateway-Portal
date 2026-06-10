@@ -105,10 +105,14 @@
                         div.style.marginBottom = '25px';
                         div.style.boxSizing = 'border-box';
 
-                        const flyerImg = evt.flyerUrl || "https://placehold.co/800x400?text=Gateway+Church+Program";
+                        const finalFlyerUrl = evt.flyerUrl.startsWith('http')
+                            ? evt.flyerUrl
+                            : `https://gateway-portal.onrender.com${evt.flyerUrl}`;
+
+                        // const flyerImg = evt.flyerUrl || "https://placehold.co/800x400?text=Gateway+Church+Program";
 
                         div.innerHTML = `
-                            <img src="${flyerImg}" class="event-img" alt="Program Banner" style="width: 100%; 
+                            <img src="${finalFlyerUrl}" class="event-img" alt="Program Banner" style="width: 100%; 
                                         display: block; 
                                         height: auto; 
                                         object-fit: cover; 

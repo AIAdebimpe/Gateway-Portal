@@ -25,9 +25,16 @@ if (!fs.existsSync('./uploads')) {
 
 const ROOT_DIR = process.cwd();
 const app = express();
+
+const uploadsPath = path.join(ROOT_DIR, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+    console.log("📁 Created missing 'uploads' directory container on server host.");
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(ROOT_DIR, 'public')));
+
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const __filename = fileURLToPath(import.meta.url);

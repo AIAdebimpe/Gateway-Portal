@@ -34,8 +34,7 @@ export const createDevotional = async (req, res) => {
         }
 
         // File path allocation
-        const flyerUrl = `/${req.file.path.replace(/\\/g, '/')}`; 
-
+        const flyerUrl = req.file.path;
         const newDevotional = await Devotional.create({
             title,
             date: startOfDay, // Normalize to start of day
