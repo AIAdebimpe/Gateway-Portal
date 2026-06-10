@@ -23,8 +23,9 @@ if (!fs.existsSync('./uploads')) {
     console.log('📁 Created physical missing uploads directory in cloud root container');
 }
 
+const ROOT_DIR = process.cwd();
 const app = express();
-app.use(express.static('public'));
+app.use(express.static(path.join(ROOT_DIR, 'public')));
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const __filename = fileURLToPath(import.meta.url);
@@ -50,7 +51,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.join(ROOT_DIR, 'uploads')));
 app.use('/api/devotionals', devotionalRoutes);
 
 app.listen(PORT, () => {
