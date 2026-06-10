@@ -93,6 +93,13 @@
                     }
 
                     data.allEvents.forEach(evt => {
+                        if (!evt.flyerUrl || 
+                            evt.flyerUrl.trim() === '' || 
+                            evt.flyerUrl.includes('/uploads/') || 
+                            !evt.flyerUrl.startsWith('http')) { 
+                            return; // Exits this specific loop iteration immediately, skipping the post entirely
+                        }
+
                         const div = document.createElement('div');
                         div.className = 'event-row';
                         div.style.width = '100%';
@@ -111,6 +118,10 @@
                         `;
                         wrapper.appendChild(div);
                     });
+
+                    if (wrapper.children.length === 0) {
+                        wrapper.innerHTML = `<p style="text-align:center; color:#6b7280;">No active upcoming events scheduled currently. Check back soon!</p>`;
+                    }
                 }
             } catch(e) { 
                 console.error("Error drawing live itinerary pipeline:", e); 
