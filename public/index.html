@@ -196,17 +196,8 @@
                                 const card = document.createElement('div');
                                 card.className = 'home-event-card';
 
-                                const dateLabel = new Date(evt.eventDate).toLocaleDateString(undefined, {
-                                    weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
-                                });
-
                                 card.innerHTML = `
-                                    <img src="${evt.flyerUrl}" alt="${evt.title}">
-                                    <div class="home-event-details">
-                                        <div class="home-event-title">${evt.title}</div>
-                                        <div class="home-event-meta">🗓️ <strong>Date:</strong> ${dateLabel}</div>
-                                        <div class="home-event-meta">📍 <strong>Location:</strong> ${evt.location || 'Main Sanctuary'}</div>
-                                    </div>
+                                    <img src="${evt.flyerUrl}" alt="${evt.title || 'Program Banner'}">
                                 `;
                                 grid.appendChild(card);
                             });
