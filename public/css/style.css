@@ -104,3 +104,49 @@ body {
 .submit-btn:hover {
     background: var(--primary-hover);
 }
+
+.events-home-grid {
+    display: grid;
+    /* Auto-fit dynamically calculates column layouts based on available space */
+    grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
+    gap: 24px;
+    width: 100%;
+}
+
+.home-event-card {
+    background: var(--panel-bg); /* Reuses your existing white panel variable */
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border); /* Reuses your border utility line variable */
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.home-event-card img {
+    width: 100%;
+    height: 320px; /* Enhanced height for a beautiful banner layout */
+    object-fit: cover;
+    background: #f3f4f6;
+}
+
+.home-event-details {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.home-event-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--primary); /* Anchors color theme seamlessly to your deep blue branding */
+    margin-bottom: 8px;
+}
+
+.home-event-meta {
+    font-size: 14px;
+    color: var(--text-muted); /* Maps safely to your muted gray font text variable */
+    margin-bottom: 4px;
+}
