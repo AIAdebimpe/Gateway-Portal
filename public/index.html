@@ -175,13 +175,24 @@
                 if (grid) {
                     grid.innerHTML = '';
 
-                    const now = new Date();
+                    const todayStr = new Date().toISOString().split('T')[0];
 
+                    // 1. Isolate only valid future or current-day events
+                    const futureEventsOnly = (eventData.allEvents || []).filter(evt => {
+                        if (!evt.flyerUrl || evt.flyerUrl.trim() === '' || !evt.eventDate) return false;
+                        
+                        // Format the event's date down to YYYY-MM-DD for a clean matching baseline
+                        const eventDateStr = new Date(evt.eventDate).toISOString().split('T')[0];
+                        
+                        // ✅ Only allow events whose date is greater than or equal to today
+                        return eventDateStr >= todayStr;
+                    });
 
-                    const nextUpcomingEvent = (eventData.allEvents || [])
-                        .filter(evt => evt.flyerUrl && evt.flyerUrl.trim() !== '')
-                        .sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate))
-                        .find(evt => new Date(evt.eventDate) >= now.setHours(0,0,0,0));
+                    // 2. Sort the future array chronologically (closest date first)
+                    futureEventsOnly.sort((a, b) => new Date(a.eventDate) - new Date(b.eventDate));
+
+                    // 3. Extract the single next upcoming event
+                    const nextUpcomingEvent = futureEventsOnly[0];
 
                     if (!nextUpcomingEvent) {
                         if (placeholder) {
@@ -190,7 +201,7 @@
                         }
                         grid.style.display = 'none';
                     } else {
-                        // Hide loading indicator and reveal the grid container
+                        // Hide loading indicator and reveal the container
                         if (placeholder) placeholder.style.display = 'none';
                         grid.style.display = 'grid';
 
