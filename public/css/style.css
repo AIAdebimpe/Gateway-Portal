@@ -105,12 +105,21 @@ body {
     background: var(--primary-hover);
 }
 
+.flyer-container, 
+#featuredFlyerContainer {
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
 .events-home-grid {
     display: grid;
     /* Auto-fit dynamically calculates column layouts based on available space */
     grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
     gap: 24px;
     width: 100%;
+    background: transparent;
 }
 
 .home-event-card {
