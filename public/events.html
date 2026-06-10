@@ -31,28 +31,28 @@
             <h2 style="color: var(--primary, #1e3a8a); font-size: 20px; margin-top: 0; margin-bottom: 5px;">📅 Schedule New Church Event</h2>
             <p style="color: #4b5563; font-size: 14px; margin-bottom: 20px;">Publish announcement events to the general congregation calendar tracker.</p>
             
-            <form id="eventCreationForm" onsubmit="handleEventPublish(event)" style="display: grid; gap: 15px; max-width: 600px;">
+            <form id="eventCreationForm" onsubmit="handleEventPublish(event)" enctype="multipart/form-data" style="display: grid; gap: 15px; max-width: 600px;">
                 <div>
                     <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Event Title *</label>
-                    <input type="text" id="eventTitle" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required placeholder="e.g., Youth Revival Night">
+                    <input type="text" id="eventTitle" name="title" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required placeholder="e.g., Youth Revival Night">
                 </div>
                 <div>
                     <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Description</label>
-                    <textarea id="eventDescription" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; height:80px; box-sizing: border-box;" placeholder="Details about timings, guest speakers..."></textarea>
+                    <textarea id="eventDescription" name="description" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; height:80px; box-sizing: border-box;" placeholder="Details about timings, guest speakers..."></textarea>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div>
                         <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Date & Time *</label>
-                        <input type="datetime-local" id="eventDate" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required>
+                        <input type="datetime-local" id="eventDate" name="eventDate" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" required>
                     </div>
                     <div>
                         <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Venue Location</label>
-                        <input type="text" id="eventLocation" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" placeholder="e.g., Main Sanctuary">
+                        <input type="text" id="eventLocation" name="location" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px; box-sizing: border-box;" placeholder="e.g., Main Sanctuary">
                     </div>
                 </div>
                 <div>
                     <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:5px; color:#374151;">Program Poster Image *</label>
-                    <input type="file" id="eventFlyer" accept="image/*" style="width:100%; padding:8px; border:1px dashed #d1d5db; border-radius:6px; background:#f9fafb;" required>
+                    <input type="file" id="eventFlyer" name="image" accept="image/*" style="width:100%; padding:8px; border:1px dashed #d1d5db; border-radius:6px; background:#f9fafb;" required>
                 </div>
                 <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
                     <button type="submit" style="background: #1e3a8a; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer;">📢 Publish Event</button>
@@ -130,25 +130,31 @@
         async function handleEventPublish(e) {
             e.preventDefault();
 
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert("Session context missing. Please log in again.");
+                return;
+            }
+
             const title = document.getElementById('eventTitle').value;
             const description = document.getElementById('eventDescription').value;
             const eventDate = document.getElementById('eventDate').value;
             const location = document.getElementById('eventLocation').value;
             const flyerFile = document.getElementById('eventFlyer').files[0];
 
-            if (!token) {
-                alert("Session context missing. Please log in again.");
+            if (!flyerFile) {
+                alert("A program poster image file is required.");
                 return;
             }
+
 
             const formData = new FormData();
             formData.append('title', title);
             formData.append('description', description);
             formData.append('eventDate', eventDate);
             formData.append('location', location);
-            if (flyerFile) {
-                formData.append('image', flyerFile);
-            }
+            formData.append('image', flyerFile);
+            
 
             try {
                 const res = await fetch('/api/events/create', {
@@ -158,6 +164,14 @@
                     },
                     body: formData
                 });
+
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const rawHTML = await res.text();
+                    console.error("Backend Server Error Log:", rawHTML);
+                    alert("Server encountered an issue processing the upload. Check your Render logs.");
+                    return;
+                }
 
                 const data = await res.json();
 

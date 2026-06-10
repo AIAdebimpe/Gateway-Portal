@@ -11,10 +11,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
     console.log("🛠️ Local environment variables loaded from .env file");
+}
+
+if (!fs.existsSync('./uploads')) {
+    fs.mkdirSync('./uploads');
+    console.log('📁 Created physical missing uploads directory in cloud root container');
 }
 
 const app = express();

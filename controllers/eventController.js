@@ -11,12 +11,14 @@ export const createEvent = async (req, res) => {
 
         let flyerUrl = "";
         if (req.file) {
-            flyerUrl = `/${req.file.path.replace(/\\/g, '/')}`; 
-        } else if (req.body.flyerUrl) {
+            flyerUrl = `/uploads/${req.file.filename}`;
+        } else if (req.body.flyerUrl && req.body.flyerUrl.trim() !== "") {
             flyerUrl = req.body.flyerUrl; // Fallback text payload string match
         } else {
             return res.status(400).json({ error: "A program poster image file is required." });
         }
+
+        const creatorId = requestingUser ? (requestingUser.userId || requestingUser._id || requestingUser.id) : null;
 
         const newEvent = await Event.create({
             title,
@@ -24,7 +26,7 @@ export const createEvent = async (req, res) => {
             eventDate,
             location: location || "Main Sanctuary",
             flyerUrl: flyerUrl,
-            createdBy: requestingUser.userId || requestingUser._id || requestingUser.id
+            createdBy: creatorId
         });
 
         return res.status(201).json({ message: "Event published successfully!", event: newEvent });
