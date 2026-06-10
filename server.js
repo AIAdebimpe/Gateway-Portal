@@ -25,6 +25,8 @@ if (!fs.existsSync('./uploads')) {
 
 const ROOT_DIR = process.cwd();
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(ROOT_DIR, 'public')));
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
